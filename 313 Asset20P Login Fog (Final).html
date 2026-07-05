@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>20P Asset Plan - Secure System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f4f6f8; }
+        
+        /* AUTHENTICATION SCREEN CSS */
+        #auth-screen { display: flex; justify-content: center; align-items: center; height: 90vh; }
+        .auth-box { background: #ffffff; padding: 35px 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); width: 100%; max-width: 340px; text-align: center; }
+        .auth-box h2 { color: #1a1a1a; margin-top: 0; margin-bottom: 5px; font-size: 22px; }
+        .auth-box p.subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
+        .auth-box input { width: 100%; padding: 12px 15px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 14px; transition: border-color 0.2s; }
+        .auth-box input:focus { border-color: #007bff; outline: none; }
+        .auth-box button { width: 100%; padding: 12px; margin-top: 15px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; transition: background 0.2s; }
+        .auth-box button:hover { background: #0069d9; }
+        .auth-message { font-size: 13px; min-height: 20px; margin: 5px 0; font-weight: 500; }
+        .auth-links { display: flex; justify-content: center; margin-top: 20px; font-size: 13px; }
+        .toggle-link { color: #007bff; cursor: pointer; text-decoration: none; transition: color 0.2s; }
+        .toggle-link:hover { color: #0056b3; text-decoration: underline; }
+
+        /* MAIN APP CSS */
+        #app-container { display: none; max-width: 850px; margin: 0 auto; background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f2f5; padding-bottom: 15px; margin-bottom: 20px; }
+        .header-bar h2 { margin: 0; color: #1a1a1a; font-size: 20px; }
+        .header-actions { display: flex; gap: 10px; }
+        .manage-btn { background: #17a2b8; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.2s; display: none; }
+        .manage-btn:hover { background: #138496; }
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.2s; }
+        .logout-btn:hover { background: #c82333; }
+        
+        /* MODAL CSS (For Admin Management) */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background-color: #fff; padding: 25px; border-radius: 12px; width: 300px; text-align: center; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .close-btn { position: absolute; top: 12px; right: 18px; font-size: 24px; cursor: pointer; color: #888; }
+        .close-btn:hover { color: #333; }
+        .modal-content input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px;}
+        .modal-content button { width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; font-size: 14px;}
+        .btn-add { background-color: #28a745; }
+        .btn-add:hover { background-color: #218838; }
+        .btn-remove { background-color: #dc3545; }
+        .btn-remove:hover { background-color: #c82333; }
+
+        /* CALCULATOR CSS */
+        .scenario-box { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; background: #e3f2fd; padding: 15px; border-radius: 10px; }
+        .toggle-row { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .toggle-label { font-weight: bold; font-size: 14px; color: #555; width: 90px; text-align: right; }
+        .btn-group { display: flex; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; flex-wrap: wrap; }
+        .btn-group button { border: none; padding: 8px 14px; cursor: pointer; background: #fff; font-size: 13px; transition: background 0.2s, color 0.2s; }
+        .btn-group button.active { background: #007bff; color: white; font-weight: bold; }
+        .slider-box { text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px; border: 1px solid #eee; }
+        .age-display { font-size: 28px; font-weight: bold; color: #007bff; }
+        input[type=range] { width: 100%; margin: 15px 0; cursor: pointer; }
+
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .data-box { padding: 15px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; gap: 8px; }
+        .male { background-color: #f0f7ff; border: 1px solid #bbd6fe; }
+        .female { background-color: #fff0f5; border: 1px solid #fbcce0; }
+        .data-box h3 { margin: 0 0 10px 0; font-size: 16px; color: #333; }
+        .row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(0,0,0,0.1); padding-bottom: 6px; font-size: 13px; }
+        .row:last-child { border-bottom: none; }
+        .val { font-weight: bold; color: #1a1a1a; }
+        .highlight { color: #2e7d32; font-weight: 800; }
+        .charts-container { display: grid; grid-template-columns: 1fr; gap: 30px; margin-top: 30px; }
+        .chart-wrapper { position: relative; height: 260px; width: 100%; }
+        .chart-title { text-align: center; font-size: 14px; font-weight: bold; color: #555; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="auth-screen">
+    <div class="auth-box">
+        <h2 id="auth-title">System Sign In</h2>
+        <p class="subtitle" id="auth-subtitle">Authorized Personnel Only</p>
+        
+        <input type="text" id="username" placeholder="Username" autocomplete="off">
+        <input type="password" id="secretPin" placeholder="Secret PIN" style="display:none;" autocomplete="off">
+        <input type="password" id="password" placeholder="Password">
+        
+        <div id="auth-msg" class="auth-message"></div>
+        <button id="auth-btn" onclick="handleAuth()">Login</button>
+
+        <div class="auth-links">
+            <span class="toggle-link" onclick="setAuthMode('forgot')" id="link-forgot">Forgot Password?</span>
+            <span class="toggle-link" onclick="setAuthMode('login')" id="link-login" style="display:none; width:100%; text-align:center;">&larr; Back to Login</span>
+        </div>
+    </div>
+</div>
+
+<div id="manageModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeManageModal()">&times;</span>
+        <h3 style="margin-top: 0; color: #333;">Manage Users</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Add a new user or remove an existing one.</p>
+        
+        <input type="text" id="manageUsername" placeholder="Username" autocomplete="off">
+        <input type="password" id="managePassword" placeholder="Password (required for add)">
+        
+        <div id="manageMsg" style="font-size: 13px; margin: 8px 0; min-height: 18px; font-weight: bold;"></div>
+        
+        <button class="btn-add" onclick="addUser()">Add / Update User</button>
+        <button class="btn-remove" onclick="removeUser()">Remove User</button>
+    </div>
+</div>
+
+<div id="app-container">
+    <div class="header-bar">
+        <h2>20P Asset Plan</h2>
+        <div class="header-actions">
+            <button class="manage-btn" id="manageBtn" onclick="openManageModal()">Manage Users</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="scenario-box">
+        <div class="toggle-row">
+            <div class="toggle-label">Plan Type:</div>
+            <div class="btn-group">
+                <button class="p-btn active" onclick="setPlan('plan1', this)">Plan 1: Basic Coverage</button>
+                <button class="p-btn" onclick="setPlan('plan2', this)">Plan 2: + DLSR</button>
+                <button class="p-btn" onclick="setPlan('plan3', this)">Plan 3: + DLSR + PowerCI</button>
+            </div>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-label">Coverage:</div>
+            <div class="btn-group">
+                <button class="c-btn active" onclick="setCov('500k', this)">500K</button>
+                <button class="c-btn" onclick="setCov('1M', this)">1 Million</button>
+                <button class="c-btn" onclick="setCov('1.5M', this)">1.5 Million</button>
+            </div>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-label">Term:</div>
+            <div class="btn-group">
+                <button class="t-btn active" onclick="setTerm(80, this)">Until Age 80</button>
+                <button class="t-btn" onclick="setTerm(70, this)">Until Age 70</button>
+            </div>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-label">Waiver:</div>
+            <div class="btn-group">
+                <button class="w-btn active" onclick="setWaiver('basic', this)">Basic Plan</button>
+                <button class="w-btn" onclick="setWaiver('waiver', this)">With Waiver CI&TPD</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="slider-box">
+        <div>Entry Age: <span id="ageVal" class="age-display">30</span></div>
+        <input type="range" id="ageSlider" min="20" max="60" value="30" step="1">
+        <small>Drag to adjust entry age</small>
+    </div>
+
+    <div class="data-grid">
+        <div class="data-box male">
+            <h3>Male 👨</h3>
+            <div class="row"><span>Annual Premium</span><span class="val" id="mPrice">-</span></div>
+            <div class="row"><span>Total Paid (20 Yrs)</span><span class="val" id="mTotal">-</span></div>
+            <div class="row"><span>FV @ 60</span><span class="val highlight" id="m60">-</span></div>
+            <div class="row"><span>FV @ 65</span><span class="val highlight" id="m65">-</span></div>
+            <div class="row"><span>FV @ 70</span><span class="val highlight" id="m70">-</span></div>
+            <div class="row"><span>FV @ 75</span><span class="val highlight" id="m75">-</span></div>
+            <div class="row"><span>FV @ 80</span><span class="val highlight" id="m80">-</span></div>
+        </div>
+        <div class="data-box female">
+            <h3>Female 👩</h3>
+            <div class="row"><span>Annual Premium</span><span class="val" id="fPrice">-</span></div>
+            <div class="row"><span>Total Paid (20 Yrs)</span><span class="val" id="fTotal">-</span></div>
+            <div class="row"><span>FV @ 60</span><span class="val highlight" id="f60">-</span></div>
+            <div class="row"><span>FV @ 65</span><span class="val highlight" id="f65">-</span></div>
+            <div class="row"><span>FV @ 70</span><span class="val highlight" id="f70">-</span></div>
+            <div class="row"><span>FV @ 75</span><span class="val highlight" id="f75">-</span></div>
+            <div class="row"><span>FV @ 80</span><span class="val highlight" id="f80">-</span></div>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div>
+            <div class="chart-title">Premium vs Entry Age</div>
+            <div class="chart-wrapper"><canvas id="premiumChart"></canvas></div>
+        </div>
+        <div>
+            <div class="chart-title">Cost of Insurance (COI) Progression (Male Example)</div>
+            <div class="chart-wrapper"><canvas id="coiChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- AUTHENTICATION & ADMIN LOGIC ---
+    
+    // Bootstrap Default Admin
+    if (!localStorage.getItem('user_admin')) {
+        localStorage.setItem('user_admin', '313wow5252');
+    } else if (localStorage.getItem('user_admin') === 'admin123') {
+        // Auto-update legacy admin password
+        localStorage.setItem('user_admin', '313wow5252');
+    }
+
+    // List of pre-approved users
+    const defaultUsers = [
+        { id: 'ojl313', pass: 'ojl313act' },
+        { id: 'stv313', pass: 'stv313act' },
+        { id: 'shr313', pass: 'shr313act' },
+        { id: 'mxn313', pass: 'mxn313act' },
+        { id: 'hnr313', pass: 'hnr313act' },
+        { id: 'jrd313', pass: 'jrd313act' },
+        { id: 'kgs313', pass: 'kgs313act' },
+        { id: 'chr313', pass: 'chr313act' },
+        { id: 'gab313', pass: 'gab313act' },
+        { id: 'bry313', pass: 'bry313act' },
+        { id: 'adr313', pass: 'adr313act' },
+        { id: 'evd313', pass: 'evd313act' },
+        { id: 'key313', pass: 'key313act' },
+        { id: 'irs313', pass: 'irs313act' }
+    ];
+
+    // Bootstrap Users into LocalStorage (if not already deleted by admin)
+    defaultUsers.forEach(u => {
+        if (!localStorage.getItem('user_' + u.id) && localStorage.getItem('deleted_' + u.id) !== 'true') {
+            localStorage.setItem('user_' + u.id, u.pass);
+        }
+    });
+
+    let authMode = 'login'; 
+
+    function setAuthMode(mode) {
+        authMode = mode;
+        const msgEl = document.getElementById('auth-msg');
+        msgEl.innerText = "";
+        document.getElementById('password').value = "";
+        document.getElementById('secretPin').value = ""; 
+
+        const title = document.getElementById('auth-title');
+        const subtitle = document.getElementById('auth-subtitle');
+        const btn = document.getElementById('auth-btn');
+        const passInput = document.getElementById('password');
+        const pinInput = document.getElementById('secretPin');
+        const linkForgot = document.getElementById('link-forgot');
+        const linkLogin = document.getElementById('link-login');
+
+        if (mode === 'login') {
+            title.innerText = "System Sign In";
+            subtitle.innerText = "Authorized Personnel Only";
+            btn.innerText = "Login";
+            passInput.placeholder = "Password";
+            pinInput.style.display = "none";
+            linkForgot.style.display = "inline-block";
+            linkLogin.style.display = "none";
+        } else if (mode === 'forgot') {
+            title.innerText = "Reset Password";
+            subtitle.innerText = "Enter your Username and Secret PIN to reset.";
+            btn.innerText = "Save New Password";
+            passInput.placeholder = "Enter new password";
+            pinInput.style.display = "block";
+            pinInput.placeholder = "Enter your Secret PIN (Default: 0000)";
+            linkForgot.style.display = "none";
+            linkLogin.style.display = "inline-block";
+        }
+    }
+
+    function handleAuth() {
+        const user = document.getElementById('username').value.trim().toLowerCase();
+        const pass = document.getElementById('password').value.trim();
+        const pin = document.getElementById('secretPin').value.trim();
+        const msgEl = document.getElementById('auth-msg');
+
+        if (!user || !pass) {
+            msgEl.innerText = "Please fill in all required fields.";
+            msgEl.style.color = "#dc3545";
+            return;
+        }
+
+        if (authMode === 'forgot' && !pin) {
+            msgEl.innerText = "Secret PIN is required.";
+            msgEl.style.color = "#dc3545";
+            return;
+        }
+
+        const storedKey = 'user_' + user;
+        const storedPinKey = 'user_pin_' + user;
+
+        if (authMode === 'login') {
+            const savedPass = localStorage.getItem(storedKey);
+            if (savedPass && savedPass === pass) {
+                // Login Success
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                document.getElementById('username').value = "";
+                document.getElementById('password').value = "";
+                msgEl.innerText = "";
+                
+                // Show Manage Users button only if admin
+                if (user === 'admin') {
+                    document.getElementById('manageBtn').style.display = 'inline-block';
+                } else {
+                    document.getElementById('manageBtn').style.display = 'none';
+                }
+
+                setTimeout(render, 100); 
+            } else {
+                msgEl.innerText = "Invalid username or password.";
+                msgEl.style.color = "#dc3545";
+            }
+        } else if (authMode === 'forgot') {
+            if (!localStorage.getItem(storedKey)) {
+                msgEl.innerText = "Username not found in system.";
+                msgEl.style.color = "#dc3545";
+            } else {
+                const savedPin = localStorage.getItem(storedPinKey);
+                // Validate PIN
+                if (savedPin && savedPin !== pin) {
+                    msgEl.innerText = "Incorrect Secret PIN.";
+                    msgEl.style.color = "#dc3545";
+                } else if (!savedPin && pin !== '0000') {
+                    // Account created without explicit PIN uses 0000
+                    msgEl.innerText = "Incorrect Secret PIN. Default is 0000.";
+                    msgEl.style.color = "#dc3545";
+                } else {
+                    localStorage.setItem(storedKey, pass); // Update Password
+                    msgEl.innerText = "Password has been successfully reset!";
+                    msgEl.style.color = "#28a745";
+                    setTimeout(() => { setAuthMode('login'); }, 1500);
+                }
+            }
+        }
+    }
+
+    function logout() {
+        document.getElementById('app-container').style.display = 'none';
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('auth-msg').innerText = "";
+        setAuthMode('login');
+    }
+
+    // --- MANAGE USERS FUNCTIONS ---
+    function openManageModal() {
+        document.getElementById('manageModal').style.display = 'flex';
+        document.getElementById('manageMsg').innerText = '';
+        document.getElementById('manageUsername').value = '';
+        document.getElementById('managePassword').value = '';
+    }
+
+    function closeManageModal() {
+        document.getElementById('manageModal').style.display = 'none';
+    }
+
+    function addUser() {
+        const u = document.getElementById('manageUsername').value.trim().toLowerCase();
+        const p = document.getElementById('managePassword').value.trim();
+        const msg = document.getElementById('manageMsg');
+        if (!u || !p) {
+            msg.innerText = "Both username and password are required to add/update.";
+            msg.style.color = "#dc3545";
+            return;
+        }
+        localStorage.setItem('user_' + u, p);
+        localStorage.removeItem('deleted_' + u);
+        msg.innerText = `User '${u}' has been added/updated. Default PIN is 0000.`;
+        msg.style.color = "#28a745";
+        document.getElementById('manageUsername').value = '';
+        document.getElementById('managePassword').value = '';
+    }
+
+    function removeUser() {
+        const u = document.getElementById('manageUsername').value.trim().toLowerCase();
+        const msg = document.getElementById('manageMsg');
+        if (!u) {
+            msg.innerText = "Please enter a username to remove.";
+            msg.style.color = "#dc3545";
+            return;
+        }
+        if (u === 'admin') {
+            msg.innerText = "System admin account cannot be removed.";
+            msg.style.color = "#dc3545";
+            return;
+        }
+        if (localStorage.getItem('user_' + u)) {
+            localStorage.removeItem('user_' + u);
+            localStorage.removeItem('user_pin_' + u);
+            localStorage.setItem('deleted_' + u, 'true'); 
+            msg.innerText = `User '${u}' has been removed.`;
+            msg.style.color = "#28a745";
+            document.getElementById('manageUsername').value = '';
+            document.getElementById('managePassword').value = '';
+        } else {
+            msg.innerText = `User '${u}' not found.`;
+            msg.style.color = "#dc3545";
+        }
+    }
+
+    // --- SIMULATOR LOGIC ---
+    const baseAges = [20, 30, 40, 50, 60];
+    window.currentSelectedAge = 30; 
+    
+    const coiData = {
+        '500k': { life: [335, 350, 540, 1370, 3510], dlsr: [40, 30, 50, 160, 385], pci: [167, 212, 532, 1685, 3632], ci: [31, 46, 160, 626, 2793], tpd: [5, 7, 18, 65, 305] },
+        '1M': { life: [670, 700, 1080, 2740, 7020], dlsr: [80, 60, 100, 320, 770], pci: [335, 425, 1065, 3370, 7265], ci: [59, 90, 316, 1241, 5557], tpd: [9, 14, 36, 129, 606] },
+        '1.5M': { life: [975, 1018, 1571, 3987, 10214], dlsr: [80, 60, 100, 320, 770], pci: [502, 637, 1597, 5055, 10897], ci: [79, 119, 418, 1651, 7535], tpd: [13, 18, 48, 171, 822] }
+    };
+
+    const getFV = (covStr, termNum, gender) => {
+        const mult = covStr === '1.5M' ? 3 : (covStr === '1M' ? 2 : 1);
+        const fvM80 = { fv60: [111575*mult, 106988*mult, 103503*mult, 47677*mult, 0], fv65: [0,0,0, 78823*mult, 23829*mult], fv70: [155554*mult, 147968*mult, 142205*mult, 99576*mult, 52751*mult], fv75: [0,0,0,0, 58970*mult], fv80: [52303*mult, 36589*mult, 24650*mult, 11666*mult, 79171*mult] };
+        const fvF80 = { fv60: [78151*mult, 74822*mult, 71419*mult, 34279*mult, 0], fv65: [0,0,0, 55462*mult, 19381*mult], fv70: [119159*mult, 113799*mult, 108482*mult, 67449*mult, 42957*mult], fv75: [0,0,0,0, 48160*mult], fv80: [35590*mult, 25244*mult, 14980*mult, 7926*mult, 78224*mult] };
+        const fvM70 = { fv60: [39718*mult, 37410*mult, 35015*mult, 14493*mult, 0], fv65: [0,0,0, 17718*mult, 5814*mult], fv70: [36721*mult, 32903*mult, 28944*mult, 1136*mult, 379*mult], fv75: [0,0,0,0,0], fv80: [0,0,0,0,0] };
+        const fvF70 = { fv60: [24611*mult, 22617*mult, 21265*mult, 11564*mult, 0], fv65: [0,0,0, 13938*mult, 4584*mult], fv70: [32970*mult, 29760*mult, 27584*mult, 1311*mult, 576*mult], fv75: [0,0,0,0,0], fv80: [0,0,0,0,0] };
+        
+        if(termNum === 80) return gender === 'm' ? fvM80 : fvF80;
+        return gender === 'm' ? fvM70 : fvF70;
+    };
+
+    const db = {
+        'plan1': {
+            '500k': {
+                80: { basic: { m: [2420, 3115, 4110, 6040, 10410], f: [1750, 2190, 2800, 4290, 8100] }, waiver: { m: [2435, 3165, 4320, 6790, 13950], f: [1770, 2240, 2940, 4780, 9790] } },
+                70: { basic: { m: [1650, 2000, 2470, 3925, 6500], f: [1250, 1450, 1720, 2860, 4850] }, waiver: { m: [1670, 2020, 2580, 4400, 8000], f: [1270, 1490, 1800, 3130, 5570] } }
+            },
+            '1M': {
+                80: { basic: { m: [4650, 6033, 8075, 11930, 20710], f: [3315, 4200, 5447, 8460, 16100] }, waiver: { m: [4680, 6155, 8450, 13400, 27740], f: [3340, 4300, 5710, 9250, 19455] } },
+                70: { basic: { m: [3135, 3820, 4780, 7720, 12739], f: [2320, 2750, 3300, 5615, 9472] }, waiver: { m: [3150, 3880, 5000, 8670, 15625], f: [2340, 2820, 3460, 6135, 10870] } }
+            },
+            '1.5M': {
+                80: { basic: { m: [6630, 8660, 11570, 17180, 30140], f: [4675, 5940, 7720, 12250, 23400] }, waiver: { m: [6690, 8800, 12120, 19300, 40350], f: [4720, 6080, 8100, 13400, 28270] } },
+                70: { basic: { m: [4440, 5445, 6820, 11180, 18730], f: [3300, 3920, 4760, 8120, 13900] }, waiver: { m: [4480, 5550, 7160, 13500, 23100], f: [3330, 4020, 4980, 8870, 16000] } }
+            }
+        },
+        'plan2': {
+            '500k': {
+                80: { basic: { m: [3130, 4100, 5550, 8070, 13300], f: [2340, 2990, 3920, 5800, 10320] }, waiver: { m: [3170, 4180, 5800, 9060, 17830], f: [2360, 3050, 4130, 6340, 12470] } },
+                70: { basic: { m: [2025, 2490, 3140, 4790, 7340], f: [1500, 1760, 2130, 3540, 5500] }, waiver: { m: [2050, 2530, 3290, 5390, 9010], f: [1520, 1800, 2230, 3860, 6320] } }
+            },
+            '1M': {
+                80: { basic: { m: [6080, 8050, 10910, 15990, 26509], f: [4481, 5792, 7688, 11438, 20528] }, waiver: { m: [6150, 8180, 11442, 17952, 35480], f: [4536, 5932, 8080, 12510, 24816] } },
+                70: { basic: { m: [3873, 4800, 6490, 9481, 14554], f: [2827, 3410, 4110, 6937, 10840] }, waiver: { m: [3925, 4881, 6410, 10634, 17656], f: [2842, 3442, 4302, 7592, 12365] } }
+            },
+            '1.5M': {
+                80: { basic: { m: [8080, 10660, 14440, 21260, 35940], f: [5860, 7545, 9990, 15000, 27840] }, waiver: { m: [8170, 10855, 15130, 23880, 48110], f: [5920, 8335, 10480, 16400, 33650] } },
+                70: { basic: { m: [5200, 6420, 8170, 12940, 20610], f: [3720, 4420, 5380, 9440, 15380] }, waiver: { m: [5235, 6540, 8600, 14540, 25800], f: [3765, 4520, 5640, 10320, 17900] } }
+            }
+        },
+        'plan3': {
+            '500k': {
+                80: { basic: { m: [5660, 7620, 10450, 14600, 21300], f: [4650, 6150, 8150, 11150, 16900] }, waiver: { m: [5700, 7750, 10950, 16400, 28500], f: [4700, 6300, 8560, 12200, 20400] } },
+                70: { basic: { m: [3750, 4840, 6300, 8700, 13670], f: [3070, 3820, 4750, 6500, 10200] }, waiver: { m: [3800, 4920, 6600, 9760, 16770], f: [3100, 3910, 4980, 7020, 11710] } }
+            },
+            '1M': {
+                80: { basic: { m: [11135, 15075, 20720, 29050, 42450], f: [9100, 12100, 16150, 22080, 33650] }, waiver: { m: [11240, 15340, 21710, 32630, 56840], f: [9200, 12390, 16950, 24140, 40655] } },
+                70: { basic: { m: [7330, 9490, 12460, 17270, 27300], f: [5930, 7480, 9330, 12730, 20600] }, waiver: { m: [7385, 9660, 13060, 19400, 33600], f: [6000, 7650, 9800, 13920, 23700] } }
+            },
+            '1.5M': {
+                80: { basic: { m: [15677, 21260, 29300, 40900, 59870], f: [12800, 17055, 22700, 30990, 47530] }, waiver: { m: [15830, 21630, 30595, 45960, 70000], f: [12930, 17460, 23840, 33890, 50000] } },
+                70: { basic: { m: [10387, 13480, 17720, 24624, 39300], f: [8395, 10620, 13240, 18130, 28982] }, waiver: { m: [10482, 13720, 18560, 27670, 48205], f: [8480, 10865, 13890, 19830, 33260] } }
+            }
+        }
+    };
+
+    let cPlan = 'plan1', cCov = '500k', cTerm = 80, cWaiver = 'basic';
+
+    function setPlan(val, btn) { cPlan = val; updateUI(btn, '.p-btn'); }
+    function setCov(val, btn) { cCov = val; updateUI(btn, '.c-btn'); }
+    function setTerm(val, btn) { cTerm = val; updateUI(btn, '.t-btn'); }
+    function setWaiver(val, btn) { cWaiver = val; updateUI(btn, '.w-btn'); }
+
+    function updateUI(btn, selector) {
+        document.querySelectorAll(selector).forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render();
+    }
+
+    function interpolate(age, values) {
+        if (age <= 20) return values[0];
+        if (age >= 60) return values[4];
+        let i = Math.floor((age - 20) / 10);
+        let x0 = baseAges[i], x1 = baseAges[i+1];
+        let y0 = values[i], y1 = values[i+1];
+        return y0 + (age - x0) * (y1 - y0) / (x1 - x0);
+    }
+
+    function formatFV(val) {
+        return val <= 0 ? "-" : "RM " + Math.round(val).toLocaleString();
+    }
+
+    const verticalLinePlugin = {
+        id: 'verticalLine',
+        afterDraw: chart => {
+            if (typeof window.currentSelectedAge === 'undefined') return;
+            const age = window.currentSelectedAge;
+            const index = (age - 20) / 10;
+            const lowerIdx = Math.floor(index);
+            const upperIdx = Math.ceil(index);
+            
+            const meta = chart.getDatasetMeta(0);
+            if (!meta || !meta.data || meta.data.length < 5) return;
+            
+            let x;
+            if (lowerIdx === upperIdx) {
+                x = meta.data[lowerIdx].x;
+            } else {
+                const x0 = meta.data[lowerIdx].x;
+                const x1 = meta.data[upperIdx].x;
+                x = x0 + (index - lowerIdx) * (x1 - x0);
+            }
+            
+            const yAxis = chart.scales.y;
+            const ctx = chart.ctx;
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(x, yAxis.top);
+            ctx.lineTo(x, yAxis.bottom);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#dc3545';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#dc3545';
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 13px sans-serif';
+            ctx.fillText('Age ' + age, x, yAxis.top - 8);
+            ctx.restore();
+        }
+    };
+
+    Chart.register(verticalLinePlugin);
+
+    const commonChartOptions = { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        layout: { padding: { top: 25 } },
+        interaction: { mode: 'index', intersect: false }
+    };
+
+    let premiumChart, coiChart;
+
+    function initCharts() {
+        if(premiumChart) premiumChart.destroy();
+        if(coiChart) coiChart.destroy();
+
+        const premCtx = document.getElementById('premiumChart').getContext('2d');
+        premiumChart = new Chart(premCtx, {
+            type: 'line',
+            data: { labels: baseAges, datasets: [
+                { label: 'Male Premium', data: [], borderColor: '#2196F3', backgroundColor: 'rgba(33, 150, 243, 0.1)', tension: 0.2, borderWidth: 2, fill: true },
+                { label: 'Female Premium', data: [], borderColor: '#E91E63', backgroundColor: 'rgba(233, 30, 99, 0.1)', tension: 0.2, borderWidth: 2, fill: true }
+            ]},
+            options: commonChartOptions
+        });
+
+        const coiCtx = document.getElementById('coiChart').getContext('2d');
+        coiChart = new Chart(coiCtx, {
+            type: 'line',
+            data: { labels: baseAges, datasets: [
+                { label: 'Life COI', data: [], borderColor: '#4CAF50', tension: 0.2, borderWidth: 2 },
+                { label: 'DLSR COI', data: [], borderColor: '#FF5722', tension: 0.2, borderDash: [5, 5], borderWidth: 2 },
+                { label: 'PowerCI COI', data: [], borderColor: '#d32f2f', tension: 0.2, borderDash: [2, 2], borderWidth: 2 },
+                { label: 'CI Waiver COI', data: [], borderColor: '#FF9800', tension: 0.2, borderWidth: 2 },
+                { label: 'TPD Waiver COI', data: [], borderColor: '#9C27B0', tension: 0.2, borderWidth: 2 }
+            ]},
+            options: commonChartOptions
+        });
+    }
+
+    function render() {
+        const age = parseInt(document.getElementById('ageSlider').value);
+        window.currentSelectedAge = age;
+        document.getElementById('ageVal').innerText = age;
+        
+        const pData = db[cPlan][cCov][cTerm][cWaiver];
+        
+        const mPrem = interpolate(age, pData.m);
+        const fPrem = interpolate(age, pData.f);
+        
+        document.getElementById('mPrice').innerText = "RM " + Math.round(mPrem).toLocaleString();
+        document.getElementById('mTotal').innerText = "RM " + Math.round(mPrem * 20).toLocaleString();
+        document.getElementById('fPrice').innerText = "RM " + Math.round(fPrem).toLocaleString();
+        document.getElementById('fTotal').innerText = "RM " + Math.round(fPrem * 20).toLocaleString();
+
+        const fvM = getFV(cCov, cTerm, 'm');
+        const fvF = getFV(cCov, cTerm, 'f');
+
+        const updateFV = (prefix, fvData) => {
+            document.getElementById(prefix + '60').innerText = formatFV(interpolate(age, fvData.fv60));
+            document.getElementById(prefix + '65').innerText = formatFV(interpolate(age, fvData.fv65));
+            document.getElementById(prefix + '70').innerText = formatFV(interpolate(age, fvData.fv70));
+            document.getElementById(prefix + '75').innerText = formatFV(interpolate(age, fvData.fv75));
+            document.getElementById(prefix + '80').innerText = formatFV(interpolate(age, fvData.fv80));
+        };
+        
+        updateFV('m', fvM);
+        updateFV('f', fvF);
+
+        if(!premiumChart || !coiChart) initCharts();
+
+        premiumChart.data.datasets[0].data = pData.m;
+        premiumChart.data.datasets[1].data = pData.f;
+        premiumChart.update();
+
+        const coi = coiData[cCov];
+        coiChart.data.datasets[0].data = coi.life;
+        coiChart.data.datasets[1].data = coi.dlsr;
+        coiChart.data.datasets[2].data = coi.pci;
+        coiChart.data.datasets[3].data = coi.ci;
+        coiChart.data.datasets[4].data = coi.tpd;
+
+        coiChart.data.datasets[1].hidden = (cPlan === 'plan1'); 
+        coiChart.data.datasets[2].hidden = (cPlan === 'plan1' || cPlan === 'plan2'); 
+
+        coiChart.update();
+    }
+
+    document.getElementById('ageSlider').addEventListener('input', render);
+    
+    // Add Enter key support for login
+    document.getElementById('password').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') handleAuth();
+    });
+</script>
+
+</body>
+</html>
